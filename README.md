@@ -16,8 +16,8 @@ authenticated user.
 
 ## Deployed URL
 
-- **Public URL:** `https://YOUR-APP.onrender.com`  _(replace after deploying)_
-- **Cloud platform:** Render (free web service)
+- **Public URL:** https://ai-capsule.fly.dev
+- **Cloud platform:** Fly.io (free allowance; single `shared-cpu-1x` 256MB machine)
 
 ## Project structure
 
@@ -34,7 +34,9 @@ AI-Capsule/
 │       ├── pages/       # Landing, Login, Dashboard
 │       └── components/  # CapsuleForm, CapsuleCard
 ├── package.json         # root: builds client, runs server
-├── render.yaml          # Render blueprint
+├── Dockerfile           # container image used by Fly.io
+├── fly.toml             # Fly.io app configuration
+├── render.yaml          # (optional) Render blueprint, kept for reference
 └── .env.example         # environment variable names (no secrets)
 ```
 
@@ -95,9 +97,11 @@ Set these in your cloud platform (names only — never commit real values). See 
   schema in `server/db.js` (matches the assignment's `capsules` table).
 - Each record stores `user_id` taken from the **verified JWT**. READ/UPDATE/DELETE
   always filter by `user_id = req.user.sub`, so a user can only touch their own records.
-- **Storage persistence:** on Render's free tier the filesystem is **ephemeral**,
-  so the SQLite file may be reset on restart or redeploy. For persistent storage,
-  attach a Render Disk or switch to a managed PostgreSQL database.
+- **Storage persistence:** the deployed app uses **ephemeral** storage on Fly.io
+  (no volume attached), so the SQLite file is reset on every redeploy or machine
+  restart. For durable storage you would attach a Fly volume and point `DATA_DIR`
+  at its mount path, or switch to a managed PostgreSQL database. The DB path is
+  already configurable via the `DATA_DIR` environment variable.
 
 ## Run locally
 
@@ -124,30 +128,40 @@ For local GitHub OAuth, create an OAuth App at
 - **Homepage URL:** `http://localhost:3000`
 - **Authorization callback URL:** `http://localhost:3000/api/auth/github/callback`
 
-## Deploy to Render
+## Deploy to Fly.io
+
+The repo includes a `Dockerfile` and `fly.toml`, so it deploys from the Fly
+dashboard's "Launch from GitHub" flow with no CLI needed.
 
 1. Push this repo to GitHub.
-2. In Render, create a **Web Service** from the repo (or use the included `render.yaml` blueprint).
-   - **Build command:** `npm install && npm run build`
-   - **Start command:** `npm start`
-3. Add environment variables: `JWT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`,
-   `COOKIE_SECURE=true`, and `APP_BASE_URL=https://YOUR-APP.onrender.com`.
-4. Create a GitHub OAuth App whose callback URL is
-   `https://YOUR-APP.onrender.com/api/auth/github/callback`.
-5. Deploy, then open the public URL.
+2. At <https://fly.io>, sign up **with GitHub** and add a card (a small refundable
+   verification hold; not billed within the free allowance).
+3. In the Fly dashboard, **Launch an app → GitHub**, authorise, and select this
+   repo. Fly reads the `Dockerfile` and `fly.toml` (internal port `8080`,
+   ephemeral storage, single 256MB machine). Decline Postgres/Redis. Deploy.
+4. In the app's **Secrets**, set: `JWT_SECRET`, `APP_BASE_URL=https://<app>.fly.dev`,
+   `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. (`COOKIE_SECURE`, `PORT`, `DATA_DIR`
+   and `NODE_ENV` are already declared in `fly.toml`.)
+5. Create a GitHub OAuth App whose **Authorization callback URL** is
+   `https://<app>.fly.dev/api/auth/github/callback` (must match `APP_BASE_URL` +
+   `/api/auth/github/callback` exactly), then paste its client id/secret into the
+   Fly secrets and let the app redeploy.
 
 ## Required cURL checks
 
 ```bash
 # Test 1 - no authentication -> 401 Unauthorized
-curl -i https://YOUR-APP.onrender.com/api/capsules
+curl -i https://ai-capsule.fly.dev/api/capsules
 
 # Test 2 - fake / invalid JWT -> 401 Unauthorized
-curl -i -H "Cookie: token=fake-token-123" https://YOUR-APP.onrender.com/api/capsules
+curl -i -H "Cookie: token=fake-token-123" https://ai-capsule.fly.dev/api/capsules
 ```
 
-**Results obtained:** _(fill in after deploying — both returned `HTTP/1.1 401 Unauthorized`
-with body `{"error":"Unauthorized"}` during local and deployed testing.)_
+**Results obtained (against the deployed app):** both returned
+`HTTP/1.1 401 Unauthorized` with body `{"error":"Unauthorized"}`. The responses
+carried Fly's `via: 1.1 fly.io` header, confirming they came from the deployed
+service and not localhost. `GET /api/health` returned `HTTP/1.1 200 OK` with
+`{"status":"ok"}`.
 
 Test 1 proves authentication is required. Test 2 proves the backend actually
 verifies the JWT rather than only checking that a cookie exists (a fake value
@@ -155,10 +169,11 @@ fails `jwt.verify` and is rejected).
 
 ## One honest limitation
 
-On Render's free tier the SQLite database lives on an ephemeral filesystem, so
-saved prompts can be lost after an instance restart or redeploy. The schema and
-code are unchanged by this; for durable storage you would attach a persistent
-disk or move to managed PostgreSQL.
+The deployed app uses ephemeral storage on Fly.io (no volume attached), so the
+SQLite database is reset on every redeploy or machine restart — saved prompts do
+not persist across deploys. The schema and code are unaffected; for durable
+storage you would attach a Fly volume and set `DATA_DIR` to its mount path, or
+move to managed PostgreSQL.
 
 ## AI-assisted development
 
