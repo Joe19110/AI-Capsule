@@ -1,0 +1,22 @@
+# Render Blueprint for a single-URL deployment of AI Capsule.
+# The Express server serves both the built React client and the API.
+services:
+  - type: web
+    name: ai-capsule
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: APP_BASE_URL
+        sync: false # set to your Render URL, e.g. https://ai-capsule.onrender.com
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
