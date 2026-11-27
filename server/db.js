@@ -5,10 +5,11 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Store the SQLite file in a data/ folder at the project root.
-// NOTE: on platforms with an ephemeral filesystem (e.g. Render free tier) this
-// data may be lost on restart/redeploy. This is documented in the README.
-const dataDir = path.join(__dirname, '..', 'data');
+// Where the SQLite file lives. Defaults to a data/ folder at the project root.
+// Set DATA_DIR in the environment to point at a writable, persistent location.
+// On Azure App Service, DATA_DIR=/home/data persists across restarts; on hosts
+// with an ephemeral filesystem the data may be lost on restart/redeploy.
+const dataDir = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }

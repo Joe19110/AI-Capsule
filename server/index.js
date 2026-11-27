@@ -55,6 +55,7 @@ if (fs.existsSync(clientDist)) {
   });
 }
 
-app.listen(PORT, () => {
+// Bind to 0.0.0.0 so the server is reachable inside a container (Fly, Docker).
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`AI Capsule server listening on port ${PORT}`);
 });

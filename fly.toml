@@ -1,0 +1,34 @@
+# Fly.io configuration for AI Capsule.
+# NOTE: "app" is set by `fly launch` the first time you deploy. If you run
+# `fly launch` it will create/overwrite this; you can also set the name yourself.
+
+app = "ai-capsule"
+primary_region = "syd"   # change to a region near you (e.g. iad, lhr, sin)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Non-secret settings. Secrets (JWT_SECRET, GitHub creds, APP_BASE_URL) are
+  # set with `fly secrets set ...` instead of here.
+  NODE_ENV = "production"
+  PORT = "8080"
+  COOKIE_SECURE = "true"
+  DATA_DIR = "/data"
+
+# Persistent storage for the SQLite database. Mounted at /data, which DATA_DIR
+# points to, so records survive restarts and redeploys.
+[mounts]
+  source = "ai_capsule_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
