@@ -1,34 +1,31 @@
-# Fly.io configuration for AI Capsule.
-# NOTE: "app" is set by `fly launch` the first time you deploy. If you run
-# `fly launch` it will create/overwrite this; you can also set the name yourself.
+# fly.toml app configuration file generated for ai-capsule on 2026-11-27T09:54:57Z
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
 
-app = "ai-capsule"
-primary_region = "syd"   # change to a region near you (e.g. iad, lhr, sin)
+app = 'ai-capsule'
+primary_region = 'sin'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  # Non-secret settings. Secrets (JWT_SECRET, GitHub creds, APP_BASE_URL) are
-  # set with `fly secrets set ...` instead of here.
-  NODE_ENV = "production"
-  PORT = "8080"
-  COOKIE_SECURE = "true"
-  DATA_DIR = "/data"
+  COOKIE_SECURE = 'true'
+  DATA_DIR = '/data'
+  NODE_ENV = 'production'
+  PORT = '8080'
 
-# Persistent storage for the SQLite database. Mounted at /data, which DATA_DIR
-# points to, so records survive restarts and redeploys.
-[mounts]
-  source = "ai_capsule_data"
-  destination = "/data"
+[[mounts]]
+  source = 'ai_capsule_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
